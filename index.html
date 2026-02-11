@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- model-viewer -->
+  <!-- Google model-viewer -->
   <script type="module"
     src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
   </script>
@@ -13,21 +13,26 @@
     body {
       margin: 0;
       background: #000;
+      overflow: hidden;
     }
+
     model-viewer {
       width: 100vw;
       height: 100vh;
     }
+
     #shot {
       position: fixed;
-      bottom: 20px;
+      bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
-      padding: 14px 22px;
+      padding: 14px 24px;
       font-size: 16px;
-      background: #fff;
       border-radius: 30px;
       border: none;
+      background: #ffffff;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+      cursor: pointer;
     }
   </style>
 </head>
@@ -35,14 +40,13 @@
 <body>
 
 <model-viewer
-  src="caden20260211for_glb.glb"
+  src="./caden20260211for_glb.glb"
   ar
   ar-modes="webxr scene-viewer quick-look"
   camera-controls
   touch-action="pan-y"
   shadow-intensity="1"
-  auto-rotate
-  alt="테이블 AR"
+  alt="Caden 테이블 AR"
 >
 </model-viewer>
 
@@ -50,16 +54,15 @@
 
 <script>
   const viewer = document.querySelector("model-viewer");
-  document.getElementById("shot").onclick = () => {
-    viewer.toBlob().then(blob => {
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "my-space-caden20260211for_glb.png";
-      a.click();
-    });
-  };
+
+  document.getElementById("shot").addEventListener("click", async () => {
+    const blob = await viewer.toBlob({ idealAspect: true });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "my-space-caden-table.png";
+    link.click();
+  });
 </script>
 
 </body>
 </html>
-
