@@ -21,12 +21,46 @@
       height: 100vh;
       background: #000;
     }
+
+    /* 버튼 공통 스타일 */
+    .ar-btn {
+      padding: 14px 26px;
+      font-size: 16px;
+      border-radius: 30px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      width: 220px;
+    }
+
+    .place-btn {
+      background: #00c2ff;
+      color: #000;
+    }
+
+    .shot-btn {
+      background: #ffffff;
+      color: #000;
+    }
+
+    /* 버튼 컨테이너 */
+    .btn-wrap {
+      position: fixed;
+      bottom: 90px; /* 🔥 기존보다 위로 올림 */
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 10;
+    }
   </style>
 </head>
 
 <body>
 
 <model-viewer
+  id="viewer"
   src="./caden20260211for_glb.glb"
   ios-src="./caden20260211for_usdz.usdz"
   ar
@@ -37,24 +71,30 @@
   alt="Caden 테이블 AR"
 >
 
-  <button slot="ar-button"
-    style="
-      position: fixed;
-      bottom: 32px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 14px 26px;
-      font-size: 16px;
-      border-radius: 30px;
-      border: none;
-      background: #00c2ff;
-      color: #000;
-      font-weight: 600;
-    ">
-    📐 내 공간에 놓아보기
-  </button>
+  <!-- 버튼 영역 -->
+  <div class="btn-wrap" slot="ar-button">
+    <button class="ar-btn place-btn">
+      📐 내 공간에 놓아보기
+    </button>
+
+    <button class="ar-btn shot-btn" onclick="takeShot()">
+      📸 사진 찍기
+    </button>
+  </div>
 
 </model-viewer>
+
+<script>
+  function takeShot() {
+    const viewer = document.getElementById('viewer');
+    viewer.toDataURL().then((dataUrl) => {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = 'caden-ar.png';
+      a.click();
+    });
+  }
+</script>
 
 </body>
 </html>
