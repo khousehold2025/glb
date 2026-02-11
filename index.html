@@ -9,23 +9,38 @@
 </script>
 
 <style>
-body { margin:0; }
+body {
+  margin:0;
+  background:#000;
+}
 
 model-viewer {
   width:100vw;
   height:100vh;
 }
 
-.capture-btn {
+.ar-btn {
   position: fixed;
   bottom: 120px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 14px 26px;
-  border-radius: 30px;
+  padding:14px 26px;
+  border-radius:30px;
   border:none;
   font-size:16px;
   font-weight:600;
+  background:#00c2ff;
+  color:#000;
+  z-index:10;
+}
+
+.guide {
+  position: fixed;
+  bottom: 40px;
+  width:100%;
+  text-align:center;
+  font-size:13px;
+  color:#ccc;
 }
 </style>
 </head>
@@ -33,35 +48,23 @@ model-viewer {
 <body>
 
 <model-viewer
-  id="viewer"
   src="./caden20260211for_glb.glb"
+  ios-src="./caden20260211for_glb.usdz"
   ar
-  ar-modes="webxr"   <!-- 🔥 scene-viewer 제거 -->
+  ar-modes="webxr scene-viewer quick-look"
   ar-scale="auto"
   ar-placement="floor"
-  camera-controls>
+  camera-controls
+>
+  <button class="ar-btn" slot="ar-button">
+    📐 내 공간에 놓아보기
+  </button>
 </model-viewer>
 
-<button class="capture-btn" onclick="captureAR()">
-  📸 사진 찍기
-</button>
-
-<script>
-function captureAR() {
-  const viewer = document.getElementById("viewer");
-
-  if (!viewer.arActive) {
-    viewer.activateAR();   // AR 시작
-  } else {
-    viewer.toDataURL().then((dataUrl) => {
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = "sofa-ar.png";
-      a.click();
-    });
-  }
-}
-</script>
+<div class="guide">
+  📌 배치 후 두 손가락으로 크기 조절<br>
+  📸 AR 화면의 카메라 버튼 또는 휴대폰 캡처 사용
+</div>
 
 </body>
 </html>
