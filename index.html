@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- model-viewer -->
+  <script type="module"
+    src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+    }
+    model-viewer {
+      width: 100vw;
+      height: 100vh;
+    }
+    #shot {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 14px 22px;
+      font-size: 16px;
+      background: #fff;
+      border-radius: 30px;
+      border: none;
+    }
+  </style>
+</head>
+
+<body>
+
+<model-viewer
+  src="table.glb"
+  ar
+  ar-modes="webxr scene-viewer quick-look"
+  camera-controls
+  touch-action="pan-y"
+  shadow-intensity="1"
+  auto-rotate
+  alt="테이블 AR"
+>
+</model-viewer>
+
+<button id="shot">📸 사진 찍기</button>
+
+<script>
+  const viewer = document.querySelector("model-viewer");
+  document.getElementById("shot").onclick = () => {
+    viewer.toBlob().then(blob => {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "my-space-table.png";
+      a.click();
+    });
+  };
+</script>
+
+</body>
+</html>
