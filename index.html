@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Google model-viewer -->
   <script type="module"
     src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
   </script>
@@ -22,21 +21,6 @@
       height: 100vh;
       background: #000;
     }
-
-    #shot {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 14px 24px;
-      font-size: 16px;
-      border-radius: 30px;
-      border: none;
-      background: #ffffff;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.35);
-      cursor: pointer;
-      z-index: 10;
-    }
   </style>
 </head>
 
@@ -44,20 +28,19 @@
 
 <model-viewer
   src="./caden20260211for_glb.glb"
+  ios-src="./caden20260211for_usdz.usdz"
   ar
   ar-modes="webxr scene-viewer quick-look"
   camera-controls
   touch-action="pan-y"
   shadow-intensity="1"
-  environment-image="neutral"
-  exposure="1"
   alt="Caden 테이블 AR"
 >
-  <!-- ✅ AR 버튼 (이걸 눌러야 카메라 켜짐) -->
+
   <button slot="ar-button"
     style="
       position: fixed;
-      bottom: 80px;
+      bottom: 32px;
       left: 50%;
       transform: translateX(-50%);
       padding: 14px 26px;
@@ -67,23 +50,11 @@
       background: #00c2ff;
       color: #000;
       font-weight: 600;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.35);
-      cursor: pointer;
     ">
-    📐 내 공간에 놓아보기 (AR)
+    📐 내 공간에 놓아보기
   </button>
+
 </model-viewer>
 
-<button id="shot">📸 사진 저장</button>
-
-<script>
-  const viewer = document.querySelector("model-viewer");
-
-  document.getElementById("shot").addEventListener("click", async () => {
-    const blob = await viewer.toBlob({ idealAspect: true });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "my-space-caden-table.png";
-    link.click();
-  });
-</sc
+</body>
+</html>
