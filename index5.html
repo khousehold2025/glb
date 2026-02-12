@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caden AR</title>
+
+<script type="module"
+  src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
+</script>
+
+<style>
+body{
+  margin:0;
+  overflow:hidden;
+  background:#000;
+  font-family:-apple-system,BlinkMacSystemFont,sans-serif;
+}
+
+model-viewer{
+  width:100vw;
+  height:100vh;
+  background:#000;
+}
+
+/* 3D 모드 버튼 */
+.enter-ar{
+  position:fixed;
+  bottom:40px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:16px 28px;
+  border:none;
+  border-radius:40px;
+  font-size:16px;
+  font-weight:600;
+  background:#00c2ff;
+  color:#000;
+  z-index:10;
+}
+
+/* AR 모드 촬영 버튼 */
+.capture-btn{
+  position:fixed;
+  bottom:40px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:16px 28px;
+  border:none;
+  border-radius:40px;
+  font-size:16px;
+  font-weight:600;
+  background:#ffffff;
+  color:#000;
+  z-index:10;
+  display:none;
+}
+</style>
+</head>
+
+<body>
+
+<model-viewer
+  id="viewer"
+  src="caden20260211for_glb.glb"
+  ios-src="caden20260211for_glb.usdz"
+
+  ar
+  ar-modes="webxr"
+
+  ar-scale="auto"
+  ar-placement="floor"
+
+  camera-controls
+  interaction-prompt="auto"
+  shadow-intensity="1"
+  alt="Caden AR">
+</model-viewer>
+
+<button class="enter-ar" id="enterAR">
+📐 내 공간에 놓고 보기
+</button>
+
+<button class="capture-btn" id="captureBtn">
+📸 사진 찍기
+</button>
+
+<script>
+const viewer = document.getElementById("viewer");
+const enterBtn = document.getElementById("enterAR");
+const captureBtn = document.getElementById("captureBtn");
+
+enterBtn.addEventListener("click", async () => {
+  await viewer.activateAR();
+});
+
+/* AR 시작 시 버튼 전환 */
+viewer.addEventListener("ar-status", (event) => {
+  if(event.detail.status === "session-started"){
+    enterBtn.style.display = "none";
+    captureBtn.style.display = "block";
+  }
+  if(event.detail.status === "not-presenting"){
+    enterBtn.style.display = "block";
+    captureBtn.style.display = "none";
+  }
+});
+
+/* 촬영 */
+captureBtn.addEventListener("click", () => {
+  const dataURL = viewer.toDataURL("image/png");
+  const link = document.createElement("a");
+  link.href = dataURL;
+  link.download = "caden-ar.png";
+  link.click();
+});
+</script>
+
+</body>
+</html>
