@@ -6,7 +6,6 @@
 
 <script src="https://cdn.babylonjs.com/babylon.js"></script>
 <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
-<script src="https://cdn.babylonjs.com/materialsLibrary/babylon.shadowOnlyMaterial.min.js"></script>
 
 <style>
 
@@ -43,6 +42,7 @@ const scene = new BABYLON.Scene(engine);
 scene.clearColor = new BABYLON.Color4(1,1,1,1);
 
 
+
 /* 카메라 */
 
 const camera = new BABYLON.ArcRotateCamera(
@@ -58,7 +58,8 @@ camera.attachControl(canvas,true);
 camera.wheelDeltaPercentage = 0.01;
 
 
-/* HDR 조명 */
+
+/* HDR 스튜디오 조명 */
 
 const hdrTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
 "https://playground.babylonjs.com/textures/environment.env",
@@ -66,6 +67,7 @@ scene
 );
 
 scene.environmentTexture = hdrTexture;
+
 
 
 /* 메인 조명 */
@@ -80,12 +82,13 @@ light.position = new BABYLON.Vector3(5,10,5);
 light.intensity = 2;
 
 
+
 /* 그림자 */
 
 const shadowGenerator = new BABYLON.ShadowGenerator(2048,light);
-
 shadowGenerator.useBlurExponentialShadowMap = true;
 shadowGenerator.blurKernel = 32;
+
 
 
 /* 바닥 */
@@ -97,21 +100,10 @@ scene
 );
 
 const groundMat = new BABYLON.StandardMaterial("groundMat",scene);
-groundMat.diffuseColor = new BABYLON.Color3(0.96,0.96,0.96);
+groundMat.diffuseColor = new BABYLON.Color3(0.95,0.95,0.95);
 
 ground.material = groundMat;
 
-
-/* 쇼룸 배경 */
-
-const background = new BABYLON.Layer(
-"background",
-"showroom.jpg",
-scene,
-true
-);
-
-background.isBackground = true;
 
 
 /* 러그 */
@@ -130,16 +122,8 @@ rugMat.diffuseColor = new BABYLON.Color3(0.85,0.85,0.85);
 rug.material = rugMat;
 
 
-/* GLB 제품 */
 
-const result = await BABYLON.SceneLoader.ImportMeshAsync(
-"",
-"./",
-"caden20260211for_glb.glb",
-scene
-);
-
-/* 쇼룸 배경 (Skybox) */
+/* 쇼룸 배경 (Skybox 방식) */
 
 const skybox = BABYLON.MeshBuilder.CreateBox(
 "skyBox",
@@ -153,18 +137,28 @@ scene
 );
 
 skyboxMaterial.backFaceCulling = false;
-
 skyboxMaterial.disableLighting = true;
 
 skyboxMaterial.diffuseTexture = new BABYLON.Texture(
-"showroom.jpg",
+"./showroom.jpg",
 scene
 );
 
 skyboxMaterial.diffuseTexture.uScale = -1;
 
 skybox.material = skyboxMaterial;
-  
+
+
+
+/* GLB 제품 로드 */
+
+const result = await BABYLON.SceneLoader.ImportMeshAsync(
+"",
+"./",
+"caden20260211for_glb.glb",
+scene
+);
+
 
 
 /* 그림자 적용 */
@@ -172,6 +166,7 @@ skybox.material = skyboxMaterial;
 result.meshes.forEach(mesh=>{
 shadowGenerator.addShadowCaster(mesh);
 });
+
 
 
 /* 자동 제품 프레이밍 */
@@ -186,6 +181,7 @@ camera.target = bounds.max.add(bounds.min).scale(0.5);
 
 camera.lowerRadiusLimit = size * 0.8;
 camera.upperRadiusLimit = size * 4;
+
 
 
 /* 자동 회전 */
@@ -217,4 +213,3 @@ engine.resize();
 
 </body>
 </html>
-
