@@ -139,6 +139,33 @@ const result = await BABYLON.SceneLoader.ImportMeshAsync(
 scene
 );
 
+/* 쇼룸 배경 (Skybox) */
+
+const skybox = BABYLON.MeshBuilder.CreateBox(
+"skyBox",
+{size:1000},
+scene
+);
+
+const skyboxMaterial = new BABYLON.StandardMaterial(
+"skyBoxMat",
+scene
+);
+
+skyboxMaterial.backFaceCulling = false;
+
+skyboxMaterial.disableLighting = true;
+
+skyboxMaterial.diffuseTexture = new BABYLON.Texture(
+"showroom.jpg",
+scene
+);
+
+skyboxMaterial.diffuseTexture.uScale = -1;
+
+skybox.material = skyboxMaterial;
+  
+
 
 /* 그림자 적용 */
 
@@ -190,3 +217,4 @@ engine.resize();
 
 </body>
 </html>
+
