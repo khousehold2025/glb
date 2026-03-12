@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>3D Product Viewer</title>
+<title>K-Household 3D Showroom</title>
 
 <script src="https://cdn.babylonjs.com/babylon.js"></script>
 <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
@@ -48,8 +48,8 @@ scene.clearColor = new BABYLON.Color4(1,1,1,1);
 const camera = new BABYLON.ArcRotateCamera(
 "camera",
 -Math.PI/2,
-Math.PI/2.4,
-5,
+Math.PI/2.3,
+6,
 new BABYLON.Vector3(0,0.8,0),
 scene
 );
@@ -58,7 +58,7 @@ camera.attachControl(canvas,true);
 camera.wheelDeltaPercentage = 0.01;
 
 
-/* HDR 스튜디오 조명 */
+/* HDR 조명 */
 
 const hdrTexture = BABYLON.CubeTexture.CreateFromPrefilteredData(
 "https://playground.babylonjs.com/textures/environment.env",
@@ -68,29 +68,7 @@ scene
 scene.environmentTexture = hdrTexture;
 
 
-/* 바닥 생성 */
-
-const ground = BABYLON.MeshBuilder.CreateGround(
-"ground",
-{width:20,height:20},
-scene
-);
-
-ground.position.y = 0;
-
-
-/* 바닥 그림자 재질 */
-
-const shadowMaterial = new BABYLON.ShadowOnlyMaterial(
-"shadowMat",
-scene
-);
-
-shadowMaterial.alpha = 0.35;
-ground.material = shadowMaterial;
-
-
-/* 조명 */
+/* 메인 조명 */
 
 const light = new BABYLON.DirectionalLight(
 "dirLight",
@@ -102,7 +80,7 @@ light.position = new BABYLON.Vector3(5,10,5);
 light.intensity = 2;
 
 
-/* Soft Shadow */
+/* 그림자 */
 
 const shadowGenerator = new BABYLON.ShadowGenerator(2048,light);
 
@@ -110,7 +88,49 @@ shadowGenerator.useBlurExponentialShadowMap = true;
 shadowGenerator.blurKernel = 32;
 
 
-/* GLB 로드 */
+/* 바닥 */
+
+const ground = BABYLON.MeshBuilder.CreateGround(
+"ground",
+{width:20,height:20},
+scene
+);
+
+const groundMat = new BABYLON.StandardMaterial("groundMat",scene);
+groundMat.diffuseColor = new BABYLON.Color3(0.96,0.96,0.96);
+
+ground.material = groundMat;
+
+
+/* 쇼룸 배경 */
+
+const background = new BABYLON.Layer(
+"background",
+"showroom.jpg",
+scene,
+true
+);
+
+background.isBackground = true;
+
+
+/* 러그 */
+
+const rug = BABYLON.MeshBuilder.CreateGround(
+"rug",
+{width:4,height:3},
+scene
+);
+
+rug.position.y = 0.01;
+
+const rugMat = new BABYLON.StandardMaterial("rugMat",scene);
+rugMat.diffuseColor = new BABYLON.Color3(0.85,0.85,0.85);
+
+rug.material = rugMat;
+
+
+/* GLB 제품 */
 
 const result = await BABYLON.SceneLoader.ImportMeshAsync(
 "",
@@ -122,28 +142,26 @@ scene
 
 /* 그림자 적용 */
 
-result.meshes.forEach(function(mesh){
-
+result.meshes.forEach(mesh=>{
 shadowGenerator.addShadowCaster(mesh);
-
 });
 
 
 /* 자동 제품 프레이밍 */
 
-const boundingInfo = scene.getWorldExtends();
+const bounds = scene.getWorldExtends();
 
-const size = boundingInfo.max.subtract(boundingInfo.min).length();
+const size = bounds.max.subtract(bounds.min).length();
 
-camera.radius = size * 1.5;
+camera.radius = size * 1.8;
 
-camera.target = boundingInfo.max.add(boundingInfo.min).scale(0.5);
+camera.target = bounds.max.add(bounds.min).scale(0.5);
 
 camera.lowerRadiusLimit = size * 0.8;
 camera.upperRadiusLimit = size * 4;
 
 
-/* 자동 회전 (선택) */
+/* 자동 회전 */
 
 scene.registerBeforeRender(function(){
 
@@ -158,20 +176,14 @@ return scene;
 
 
 createScene().then(scene=>{
-
-engine.runRenderLoop(function(){
-
+engine.runRenderLoop(()=>{
 scene.render();
-
+});
 });
 
-});
 
-
-window.addEventListener("resize",function(){
-
+window.addEventListener("resize",()=>{
 engine.resize();
-
 });
 
 </script>
