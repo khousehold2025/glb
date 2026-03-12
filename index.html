@@ -1,95 +1,92 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="utf-8">
+<title>3D Viewer</title>
 
-<script type="module"
-  src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js">
-</script>
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
 
 <style>
-body {
-  margin:0;
-  background:#000;
-  overflow:hidden;
-  font-family:sans-serif;
+html,body{
+width:100%;
+height:100%;
+margin:0;
+overflow:hidden;
 }
 
-model-viewer {
-  width:100vw;
-  height:100vh;
-}
-
-.main-btn {
-  position: fixed;
-  bottom: 120px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding:14px 26px;
-  border-radius:30px;
-  border:none;
-  font-size:16px;
-  font-weight:600;
-  background:#00c2ff;
-  color:#000;
-  z-index:10;
-}
-
-.notice {
-  position: fixed;
-  bottom:40px;
-  width:100%;
-  text-align:center;
-  font-size:13px;
-  color:#ccc;
+#renderCanvas{
+width:100%;
+height:100%;
+touch-action:none;
 }
 </style>
 </head>
 
 <body>
 
-<model-viewer
-  id="viewer"
-  src="./caden20260211for_glb.glb"
-  ar
-  ar-modes="webxr"
-  ar-scale="auto"
-  ar-placement="floor"
-  camera-controls
->
-</model-viewer>
-
-<button class="main-btn" onclick="handleAR()">
-  📐 AR 시작
-</button>
-
-<div class="notice">
-  Android Chrome 전용 | 두 손가락으로 크기 조절
-</div>
+<canvas id="renderCanvas"></canvas>
 
 <script>
-const viewer = document.getElementById("viewer");
-const btn = document.querySelector(".main-btn");
 
-function handleAR() {
+var canvas = document.getElementById("renderCanvas");
+var engine = new BABYLON.Engine(canvas,true);
 
-  // 아직 AR 시작 안했으면 → 시작
-  if (!viewer.arActive) {
-    viewer.activateAR();
-    btn.innerText = "📸 사진 찍기";
-  }
+var createScene = async function(){
 
-  // AR 상태면 → 캡처
-  else {
-    viewer.toDataURL().then((dataUrl) => {
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = "sofa-ar.png";
-      link.click();
-    });
-  }
-}
+var scene = new BABYLON.Scene(engine);
+
+var camera = new BABYLON.ArcRotateCamera(
+"camera",
+-Math.PI/2,
+Math.PI/2.3,
+4,
+new BABYLON.Vector3(0,0.8,0),
+scene
+);
+
+camera.attachControl(canvas,true);
+
+
+// 배경 이미지
+new BABYLON.Layer(
+"bg",
+"showroom.jpg",
+scene,
+true
+);
+
+
+// 조명
+var light = new BABYLON.HemisphericLight(
+"light",
+new BABYLON.Vector3(1,1,0),
+scene
+);
+
+
+// GLB 로드
+await BABYLON.SceneLoader.ImportMeshAsync(
+"",
+"./",
+"caden20260211for_glb.glb",
+scene
+);
+
+return scene;
+
+};
+
+createScene().then(scene=>{
+engine.runRenderLoop(function(){
+scene.render();
+});
+});
+
+window.addEventListener("resize",function(){
+engine.resize();
+});
+
 </script>
 
 </body>
