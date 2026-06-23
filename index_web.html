@@ -3,133 +3,194 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K-Household 3D Web Viewer</title>
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+    <title>K-Household 3D Web Viewer (Gizmo)</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            font-family: sans-serif;
-        }
-        /* 컨트롤러 영역 */
+        body { margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; }
+        
+        /* 컨트롤러 UI */
         #menu-container {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(255, 255, 255, 0.85);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 10;
-            max-width: 300px;
+            position: absolute; top: 10px; left: 10px;
+            background: rgba(255, 255, 255, 0.9); padding: 15px;
+            border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10; width: 180px;
         }
-        .menu-item {
-            margin-bottom: 10px;
+        .menu-item { margin-bottom: 12px; }
+        .menu-item label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #333; }
+        button {
+            width: 100%; padding: 8px; margin-bottom: 5px;
+            border-radius: 4px; border: 1px solid #ccc;
+            background: #fff; cursor: pointer; font-size: 12px;
         }
-        .menu-item label {
-            display: block;
-            font-size: 12px;
-            font-weight: bold;
-            margin-bottom: 4px;
-        }
-        select, button {
-            width: 100%;
-            padding: 6px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-        }
-        /* 3D 뷰어 영역 */
-        model-viewer {
-            width: 100%;
-            height: 100%;
-            background-color: #f0f0f0;
-            background-size: cover;
-            background-position: center;
-        }
+        button.active { background: #007bff; color: white; border-color: #0056b3; }
+        button:hover { opacity: 0.9; }
     </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
 </head>
 <body>
 
     <div id="menu-container">
         <div class="menu-item">
-            <label>-컬러---변경-</label>
-            <select id="color-select">
-                <option value="default">기본</option>
-                <option value="#ff0000">레드</option>
-                <option value="#0000ff">블루</option>
-                <option value="#888888">그레이</option>
-                <option value="#000000">블랙</option>
-            </select>
+            <label>기즈모 모드 변경</label>
+            <button id="btn-translate" class="active">위치 이동 (T)</button>
+            <button id="btn-rotate">회전 (R)</button>
+            <button id="btn-scale">크기 조절 (S)</button>
         </div>
         <div class="menu-item">
-            <button id="save-image">이미지 저장</button>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
+            <button id="save-image" style="background: #28a745; color: white; border: none;">이미지 저장</button>
         </div>
     </div>
 
-    <model-viewer id="viewer" 
-                  camera-controls 
-                  auto-rotate 
-                  shadow-intensity="1" 
-                  exposure="1">
-    </model-viewer>
+    <div id="canvas-container"></div>
 
-    <script>
-        const viewer = document.getElementById('viewer');
-        const colorSelect = document.getElementById('color-select');
-        const saveImageBtn = document.getElementById('save-image');
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        // 1. URL 파라미터 파싱 (?glb=주소&bg=주소)
+        // 1. URL 파라미터 파싱
         const urlParams = new URLSearchParams(window.location.search);
         const glbUrl = urlParams.get('glb');
         const bgUrl = urlParams.get('bg');
 
-        // [기본값 설정] 만약 URL 파라미터가 없을 때 기본으로 띄울 GitHub 파일 주소가 있다면 아래에 적어주세요.
-        const DEFAULT_GLB = ""; 
-        const DEFAULT_BG = "";
+        // 변수 정의
+        let scene, camera, renderer, currentModel;
+        let orbitControls, transformControls;
 
-        // 2. 모델 및 배경 로드
-        if (glbUrl) {
-            viewer.src = glbUrl;
-        } else if (DEFAULT_GLB) {
-            viewer.src = DEFAULT_GLB;
-        }
+        init();
 
-        if (bgUrl) {
-            viewer.style.backgroundImage = `url('${bgUrl}')`;
-        } else if (DEFAULT_BG) {
-            viewer.style.backgroundImage = `url('${DEFAULT_BG}')`;
-        }
+        function init() {
+            const container = document.getElementById('canvas-container');
 
-        // 3. 컬러 변경 기능 (모델의 첫 번째 마티리얼 색상 변경 예시)
-        colorSelect.addEventListener('change', (event) => {
-            const colorString = event.target.value;
-            if (!viewer.model) return;
-            
-            const material = viewer.model.materials[0]; // 기본 첫번째 재질 선택
-            if (colorString === 'default') {
-                // 새로고침 하거나 기본 색상 로직 적용
-                material.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 1]);
-            } else {
-                // Hex 지정을 RGB 배열(0~1)로 변환하여 적용
-                const r = parseInt(colorString.substr(1,2), 16) / 255;
-                const g = parseInt(colorString.substr(3,2), 16) / 255;
-                const b = parseInt(colorString.substr(5,2), 16) / 255;
-                material.pbrMetallicRoughness.setBaseColorFactor([r, g, b, 1]);
+            // 2. Scene / Camera / Renderer 설정
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f0f0);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 2, 5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // 3. 조명 (Light) 설정
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 7);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            // 4. 배경 이미지 적용 (파라미터가 있을 때)
+            if (bgUrl) {
+                const textureLoader = new THREE.TextureLoader();
+                textureLoader.load(bgUrl, (texture) => {
+                    scene.background = texture;
+                });
             }
-        });
 
-        // 4. 이미지 저장 기능
-        saveImageBtn.addEventListener('click', async () => {
-            const dataUrl = viewer.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.download = '3d-viewer-screenshot.png';
-            link.href = dataUrl;
-            link.click();
-        });
+            // 5. 컨트롤 설정 (카메라 궤도 및 기즈모)
+            orbitControls = new OrbitControls(camera, renderer.domElement);
+            orbitControls.enableDamping = true;
+            orbitControls.dampingFactor = 0.05;
+
+            transformControls = new TransformControls(camera, renderer.domElement);
+            transformControls.addEventListener('change', () => renderer.render(scene, camera));
+            
+            // 기즈모 조작 중에는 카메라 회전 멈추기
+            transformControls.addEventListener('dragging-changed', (event) => {
+                orbitControls.enabled = !event.value;
+            });
+            scene.add(transformControls);
+
+            // 6. GLB 모델 로드
+            if (glbUrl) {
+                const loader = new GLTFLoader();
+                loader.load(glbUrl, (gltf) => {
+                    currentModel = gltf.scene;
+                    
+                    // 모델 중앙 정렬 및 바닥 안착 처리
+                    const box = new THREE.Box3().setFromObject(currentModel);
+                    const center = box.getCenter(new THREE.Vector3());
+                    currentModel.position.x += (currentModel.position.x - center.x);
+                    currentModel.position.z += (currentModel.position.z - center.z);
+                    currentModel.position.y += (currentModel.position.y - box.min.y);
+
+                    scene.add(currentModel);
+                    
+                    // 기본적으로 로드된 모델에 기즈모 부착
+                    transformControls.attach(currentModel);
+                }, undefined, (error) => {
+                    console.error('모델 로드 실패:', error);
+                });
+            }
+
+            // 7. UI 이벤트 연결 (기즈모 모드 전환)
+            const btnTranslate = document.getElementById('btn-translate');
+            const btnRotate = document.getElementById('btn-rotate');
+            const btnScale = document.getElementById('btn-scale');
+
+            function setActiveButton(activeBtn) {
+                [btnTranslate, btnRotate, btnScale].forEach(btn => btn.classList.remove('active'));
+                activeBtn.classList.add('active');
+            }
+
+            btnTranslate.addEventListener('click', () => { transformControls.setMode('translate'); setActiveButton(btnTranslate); });
+            btnRotate.addEventListener('click', () => { transformControls.setMode('rotate'); setActiveButton(btnRotate); });
+            btnScale.addEventListener('click', () => { transformControls.setMode('scale'); setActiveButton(btnScale); });
+
+            // 키보드 단축키 추가 (T: 이동, R: 회전, S: 크기)
+            window.addEventListener('keydown', (event) => {
+                switch (event.key.toLowerCase()) {
+                    case 't': transformControls.setMode('translate'); setActiveButton(btnTranslate); break;
+                    case 'r': transformControls.setMode('rotate'); setActiveButton(btnRotate); break;
+                    case 's': transformControls.setMode('scale'); setActiveButton(btnScale); break;
+                }
+            });
+
+            // 이미지 저장 기능
+            document.getElementById('save-image').addEventListener('click', () => {
+                // 기즈모 잠시 숨기기
+                transformControls.detach();
+                renderer.render(scene, camera);
+
+                const dataUrl = renderer.domElement.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.download = '3d-viewer-screenshot.png';
+                link.href = dataUrl;
+                link.click();
+
+                // 저장 후 기즈모 다시 붙이기
+                if (currentModel) transformControls.attach(currentModel);
+            });
+
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            orbitControls.update();
+            renderer.render(scene, camera);
+        }
     </script>
 </body>
 </html>
