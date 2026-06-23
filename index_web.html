@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K-Household 3D Web Viewer (Gizmo)</title>
+    <title>K-Household 3D Web Viewer (Gizmo Fix)</title>
     <style>
         body { margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; }
         #canvas-container { width: 100vw; height: 100vh; }
@@ -57,12 +57,10 @@
         import { TransformControls } from 'three/addons/controls/TransformControls.js';
         import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        // 1. URL 파라미터 파싱
         const urlParams = new URLSearchParams(window.location.search);
         const glbUrl = urlParams.get('glb');
         const bgUrl = urlParams.get('bg');
 
-        // 변수 정의
         let scene, camera, renderer, currentModel;
         let orbitControls, transformControls;
 
@@ -71,7 +69,6 @@
         function init() {
             const container = document.getElementById('canvas-container');
 
-            // 2. Scene / Camera / Renderer 설정
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0xf0f0f0);
 
@@ -84,7 +81,6 @@
             renderer.shadowMap.enabled = true;
             container.appendChild(renderer.domElement);
 
-            // 3. 조명 (Light) 설정
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
 
@@ -93,7 +89,6 @@
             dirLight.castShadow = true;
             scene.add(dirLight);
 
-            // 4. 배경 이미지 적용 (파라미터가 있을 때)
             if (bgUrl) {
                 const textureLoader = new THREE.TextureLoader();
                 textureLoader.load(bgUrl, (texture) => {
@@ -101,27 +96,24 @@
                 });
             }
 
-            // 5. 컨트롤 설정 (카메라 궤도 및 기즈모)
+            // 카메라 컨트롤 설정 (자동 회전 완전 비활성화)
             orbitControls = new OrbitControls(camera, renderer.domElement);
-            orbitControls.enableDamping = true;
-            orbitControls.dampingFactor = 0.05;
+            orbitControls.enableDamping = false; // 마우스 놓았을 때 미끄러지는 관성 효과 제거
+            orbitControls.autoRotate = false;    // 자동 회전 기능 확실하게 꺼둠
 
             transformControls = new TransformControls(camera, renderer.domElement);
             transformControls.addEventListener('change', () => renderer.render(scene, camera));
             
-            // 기즈모 조작 중에는 카메라 회전 멈추기
             transformControls.addEventListener('dragging-changed', (event) => {
                 orbitControls.enabled = !event.value;
             });
             scene.add(transformControls);
 
-            // 6. GLB 모델 로드
             if (glbUrl) {
                 const loader = new GLTFLoader();
                 loader.load(glbUrl, (gltf) => {
                     currentModel = gltf.scene;
                     
-                    // 모델 중앙 정렬 및 바닥 안착 처리
                     const box = new THREE.Box3().setFromObject(currentModel);
                     const center = box.getCenter(new THREE.Vector3());
                     currentModel.position.x += (currentModel.position.x - center.x);
@@ -129,15 +121,10 @@
                     currentModel.position.y += (currentModel.position.y - box.min.y);
 
                     scene.add(currentModel);
-                    
-                    // 기본적으로 로드된 모델에 기즈모 부착
                     transformControls.attach(currentModel);
-                }, undefined, (error) => {
-                    console.error('모델 로드 실패:', error);
                 });
             }
 
-            // 7. UI 이벤트 연결 (기즈모 모드 전환)
             const btnTranslate = document.getElementById('btn-translate');
             const btnRotate = document.getElementById('btn-rotate');
             const btnScale = document.getElementById('btn-scale');
@@ -151,7 +138,6 @@
             btnRotate.addEventListener('click', () => { transformControls.setMode('rotate'); setActiveButton(btnRotate); });
             btnScale.addEventListener('click', () => { transformControls.setMode('scale'); setActiveButton(btnScale); });
 
-            // 키보드 단축키 추가 (T: 이동, R: 회전, S: 크기)
             window.addEventListener('keydown', (event) => {
                 switch (event.key.toLowerCase()) {
                     case 't': transformControls.setMode('translate'); setActiveButton(btnTranslate); break;
@@ -160,9 +146,7 @@
                 }
             });
 
-            // 이미지 저장 기능
             document.getElementById('save-image').addEventListener('click', () => {
-                // 기즈모 잠시 숨기기
                 transformControls.detach();
                 renderer.render(scene, camera);
 
@@ -172,7 +156,6 @@
                 link.href = dataUrl;
                 link.click();
 
-                // 저장 후 기즈모 다시 붙이기
                 if (currentModel) transformControls.attach(currentModel);
             });
 
@@ -188,7 +171,7 @@
 
         function animate() {
             requestAnimationFrame(animate);
-            orbitControls.update();
+            // orbitControls.update()를 제거하여 불필요한 자동 업데이트나 미끄러짐 현상을 원천 차단합니다.
             renderer.render(scene, camera);
         }
     </script>
