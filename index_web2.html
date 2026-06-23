@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Household 3D Web Viewer (Capture Fix)</title>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; }
+        
+        /* 컨트롤러 UI */
+        #menu-container {
+            position: absolute; top: 10px; left: 10px;
+            background: rgba(255, 255, 255, 0.9); padding: 15px;
+            border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10; width: 180px;
+        }
+        .menu-item { margin-bottom: 12px; }
+        .menu-item label { display: block; font-size: 11px; font-weight: bold; margin-bottom: 5px; color: #333; }
+        button {
+            width: 100%; padding: 8px; margin-bottom: 5px;
+            border-radius: 4px; border: 1px solid #ccc;
+            background: #fff; cursor: pointer; font-size: 12px;
+        }
+        button.active { background: #007bff; color: white; border-color: #0056b3; }
+        button:hover { opacity: 0.9; }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="menu-container">
+        <div class="menu-item">
+            <label>기즈모 모드 변경</label>
+            <button id="btn-translate" class="active">위치 이동 (T)</button>
+            <button id="btn-rotate">회전 (R)</button>
+            <button id="btn-scale">크기 조절 (S)</button>
+        </div>
+        <div class="menu-item">
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
+            <button id="save-image" style="background: #28a745; color: white; border: none;">배경포함 이미지 저장</button>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const glbUrl = urlParams.get('glb');
+        const bgUrl = urlParams.get('bg');
+
+        let scene, camera, renderer, currentModel;
+        let orbitControls, transformControls;
+
+        init();
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f0f0);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 2, 5);
+
+            // 중요: preserveDrawingBuffer를 true로 두어야 이미지를 추출할 때 화면이 깨지거나 투명해지지 않습니다.
+            renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 7);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            // 🌟 [핵심 변경] 타 도메인(GitHub) 이미지를 Three.js 캔버스 내부에 안전하게 포함하기 위한 설정
+            if (bgUrl) {
+                const textureLoader = new THREE.TextureLoader();
+                textureLoader.setCrossOrigin('anonymous'); // CORS 보안 문제 해결
+                textureLoader.load(bgUrl, (texture) => {
+                    // 배경 이미지가 캔버스 비율에 맞게 꽉 차도록 설정
+                    texture.colorSpace = THREE.SRGBColorSpace;
+                    scene.background = texture;
+                    renderer.render(scene, camera); // 로드 즉시 강제 렌더링
+                }, undefined, (err) => {
+                    console.error("배경 로드 실패:", err);
+                });
+            }
+
+            orbitControls = new OrbitControls(camera, renderer.domElement);
+            orbitControls.enableDamping = false;
+            orbitControls.autoRotate = false;
+
+            transformControls = new TransformControls(camera, renderer.domElement);
+            transformControls.addEventListener('change', () => renderer.render(scene, camera));
+            
+            transformControls.addEventListener('dragging-changed', (event) => {
+                orbitControls.enabled = !event.value;
+            });
+            scene.add(transformControls);
+
+            if (glbUrl) {
+                const loader = new GLTFLoader();
+                loader.load(glbUrl, (gltf) => {
+                    currentModel = gltf.scene;
+                    
+                    const box = new THREE.Box3().setFromObject(currentModel);
+                    const center = box.getCenter(new THREE.Vector3());
+                    currentModel.position.x += (currentModel.position.x - center.x);
+                    currentModel.position.z += (currentModel.position.z - center.z);
+                    currentModel.position.y += (currentModel.position.y - box.min.y);
+
+                    scene.add(currentModel);
+                    transformControls.attach(currentModel);
+                    renderer.render(scene, camera);
+                });
+            }
+
+            const btnTranslate = document.getElementById('btn-translate');
+            const btnRotate = document.getElementById('btn-rotate');
+            const btnScale = document.getElementById('btn-scale');
+
+            function setActiveButton(activeBtn) {
+                [btnTranslate, btnRotate, btnScale].forEach(btn => btn.classList.remove('active'));
+                activeBtn.classList.add('active');
+            }
+
+            btnTranslate.addEventListener('click', () => { transformControls.setMode('translate'); setActiveButton(btnTranslate); });
+            btnRotate.addEventListener('click', () => { transformControls.setMode('rotate'); setActiveButton(btnRotate); });
+            btnScale.addEventListener('click', () => { transformControls.setMode('scale'); setActiveButton(btnScale); });
+
+            window.addEventListener('keydown', (event) => {
+                switch (event.key.toLowerCase()) {
+                    case 't': transformControls.setMode('translate'); setActiveButton(btnTranslate); break;
+                    case 'r': transformControls.setMode('rotate'); setActiveButton(btnRotate); break;
+                    case 's': transformControls.setMode('scale'); setActiveButton(btnScale); break;
+                }
+            });
+
+            // 🌟 [핵심 변경] 배경을 캡처 시스템에 완전히 동기화시키는 저장 로직
+            document.getElementById('save-image').addEventListener('click', () => {
+                // 1. 스크린샷에 기즈모 선들이 나오지 않도록 임시 해제
+                transformControls.detach();
+                
+                // 2. 배경화면과 오브젝트를 버퍼에 한 번 더 명확하게 그리기
+                renderer.render(scene, camera);
+
+                // 3. 이미지 추출 및 다운로드
+                const dataUrl = renderer.domElement.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.download = '3d-scene-capture.png';
+                link.href = dataUrl;
+                link.click();
+
+                // 4. 저장 완료 후 편집을 위해 기즈모 재부착
+                if (currentModel) {
+                    transformControls.attach(currentModel);
+                    renderer.render(scene, camera);
+                }
+            });
+
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.render(scene, camera);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
